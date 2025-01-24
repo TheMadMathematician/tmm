@@ -47,17 +47,16 @@ def correct_text_block(text_block):
             3. Upprepade ord och redundans: Identifiera och ta bort onödiga upprepningar av ord eller fraser, samt eliminera redundanta uttryck.
             4. Onödig användning av adverb och stoppord: Försök att minimera användningen av överflödiga adverb och stoppord utan att påverka textens flöde eller betydelse.
             5. Satsstruktur och läsbarhet: Förbättra meningsbyggnad och satsstruktur där det är nödvändigt för att förbättra läsbarheten. Använd korrekta skiljetecken för att tydliggöra textens struktur.
-            6. Klarhet och precision: Försäkra dig om att texten är tydlig och exakt, och föreslå ändringar där meningar kan vara tvetydiga eller otydliga.
-            7. Formatering: Håll ögonen på felaktig eller inkonsekvent användning av stora och små bokstäver, samt andra formateringsfel.
-            8. Ton och stil: Behåll den ursprungliga tonen och stilen i texten. Gör inte ändringar som påverkar författarens röst eller textens övergripande stil.
-            9. Märkning av ändringar: Märk alla ändringar tydligt för att underlätta jämförelse med originaltexten. Använd t.ex. överstuken och rödfärgad text för föreslagna strykningar och grönfärgad text (mörkt grön för läsligheten) för föreslagna nya ord och sektioner. Helt omskriva sektioner kan färgas blåa. 
+            6. Formatering: Håll ögonen på felaktig eller inkonsekvent användning av stora och små bokstäver, samt andra formateringsfel.
+            7. Ton och stil: Behåll den ursprungliga tonen och stilen i texten. Gör inte ändringar som påverkar författarens röst eller textens övergripande stil.
+            8. Märkning av ändringar: Märk alla ändringar tydligt för att underlätta jämförelse med originaltexten. Använd t.ex. överstuken och rödfärgad text för föreslagna strykningar och grönfärgad text (mörkt grön för läsligheten) för föreslagna nya ord och sektioner. Helt omskriva sektioner kan färgas blåa. 
 
             Observera att du inte ska göra några ändringar som påverkar berättelsen, karaktärernas utveckling, ploten, eller andra kreativa aspekter av texten. Ditt fokus ska vara på att förbättra textens tekniska och språkliga aspekter.
             """},
             {"role": "user", "content": text_block}
         ],
         max_tokens=32000,
-        temperature=0.7
+        temperature=0.5
     )
 
     return response.choices[0].message['content']
