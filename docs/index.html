@@ -1,0 +1,660 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Veckans himmel</title>
+<meta name="description" content="Vad som är värt att titta på på himlen över Stockholm den här veckan – månen, planeterna, meteorskurar och konjunktioner, beräknat direkt i webbläsaren.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='15' fill='%230b1226'/><path d='M20 7a10 10 0 1 0 0 18a8 8 0 1 1 0-18z' fill='%23f3d58a'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #070b18;
+    --bg2: #0d1430;
+    --card: rgba(255,255,255,0.045);
+    --card-border: rgba(255,255,255,0.09);
+    --text: #e8ecf8;
+    --muted: #9aa5c4;
+    --accent: #f3d58a;
+    --accent2: #8ab4ff;
+    --good: #7fd6a4;
+    --warn: #f0a46b;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--bg); }
+  body {
+    margin: 0;
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--text);
+    background:
+      radial-gradient(1200px 600px at 80% -10%, #1b2a5c 0%, transparent 60%),
+      radial-gradient(900px 500px at -10% 10%, #241a4a 0%, transparent 55%),
+      var(--bg);
+    min-height: 100vh;
+    line-height: 1.55;
+  }
+  #stars { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+  main { position: relative; z-index: 1; max-width: 1040px; margin: 0 auto; padding: 32px 16px 64px; }
+  header h1 {
+    font-family: Fraunces, Georgia, serif; font-weight: 700;
+    font-size: clamp(2.2rem, 6vw, 3.6rem); margin: 0; letter-spacing: -0.01em;
+  }
+  header h1 span { color: var(--accent); }
+  .sub { color: var(--muted); margin: 4px 0 0; }
+  .weeknav { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 22px 0 8px; }
+  .weeknav button {
+    background: var(--card); color: var(--text); border: 1px solid var(--card-border);
+    border-radius: 999px; padding: 8px 14px; font: inherit; cursor: pointer;
+  }
+  .weeknav button:hover { border-color: var(--accent); }
+  .weeknav .range { font-weight: 600; font-size: 1.1rem; }
+  h2 { font-family: Fraunces, Georgia, serif; font-weight: 500; font-size: 1.6rem; margin: 40px 0 14px; }
+  .grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
+  .card { background: var(--card); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 16px 18px; backdrop-filter: blur(4px); }
+  .highlights { display: grid; gap: 10px; }
+  .hl { display: grid; grid-template-columns: 92px 1fr; gap: 14px; align-items: start; }
+  .hl .when { color: var(--accent); font-weight: 600; font-size: .92rem; }
+  .hl .what { font-weight: 600; }
+  .hl .detail { color: var(--muted); font-size: .93rem; }
+  .tag { display: inline-block; font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; padding: 2px 8px; border-radius: 999px; margin-left: 6px; vertical-align: 2px; }
+  .tag.good { background: rgba(127,214,164,.15); color: var(--good); }
+  .tag.warn { background: rgba(240,164,107,.15); color: var(--warn); }
+  .tag.info { background: rgba(138,180,255,.15); color: var(--accent2); }
+  .planet h3 { margin: 0 0 2px; font-size: 1.15rem; display: flex; justify-content: space-between; align-items: baseline; }
+  .planet h3 small { color: var(--muted); font-weight: 400; font-size: .85rem; }
+  .planet .status { margin: 4px 0 10px; font-size: .92rem; }
+  .planet dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; font-size: .9rem; }
+  .planet dt { color: var(--muted); }
+  .planet dd { margin: 0; }
+  .planet.dim { opacity: .55; }
+  table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+  th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--card-border); white-space: nowrap; }
+  th { color: var(--muted); font-weight: 500; font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; }
+  .tablewrap { overflow-x: auto; }
+  .moonicon { display: inline-block; vertical-align: -4px; margin-right: 6px; }
+  .skywrap { display: grid; grid-template-columns: minmax(0, 520px) 1fr; gap: 24px; align-items: start; }
+  #sky { width: 100%; height: auto; display: block; }
+  .slider { display: flex; flex-direction: column; gap: 8px; }
+  .slider label { color: var(--muted); font-size: .9rem; }
+  .slider input[type=range] { width: 100%; accent-color: var(--accent); }
+  .slider select { background: var(--bg2); color: var(--text); border: 1px solid var(--card-border); border-radius: 8px; padding: 6px 8px; font: inherit; }
+  .skytime { font-family: Fraunces, Georgia, serif; font-size: 1.6rem; }
+  .legend { color: var(--muted); font-size: .88rem; }
+  footer { margin-top: 56px; color: var(--muted); font-size: .85rem; }
+  footer a { color: var(--accent2); }
+  .loading { color: var(--muted); }
+  @media (max-width: 720px) {
+    .skywrap { grid-template-columns: 1fr; }
+    .hl { grid-template-columns: 1fr; gap: 2px; }
+  }
+</style>
+</head>
+<body>
+<canvas id="stars" aria-hidden="true"></canvas>
+<main>
+  <header>
+    <h1>Veckans <span>himmel</span></h1>
+    <p class="sub">Sett från Stockholm (59,33° N, 18,07° O). Alla tider i svensk tid.</p>
+    <div class="weeknav">
+      <button id="prev" aria-label="Föregående vecka">← Förra</button>
+      <span class="range" id="range">…</span>
+      <button id="next" aria-label="Nästa vecka">Nästa →</button>
+      <button id="today" hidden>Denna vecka</button>
+    </div>
+  </header>
+
+  <section>
+    <h2>Veckans höjdpunkter</h2>
+    <div class="card"><div class="highlights" id="highlights"><p class="loading">Räknar ut himlen…</p></div></div>
+  </section>
+
+  <section>
+    <h2>Planeterna</h2>
+    <div class="grid" id="planets"></div>
+  </section>
+
+  <section>
+    <h2>Himlen en kväll i veckan</h2>
+    <div class="card skywrap">
+      <svg id="sky" viewBox="-110 -110 220 220" role="img" aria-label="Stjärnkarta över himlen från Stockholm"></svg>
+      <div class="slider">
+        <label for="skyday">Kväll</label>
+        <select id="skyday"></select>
+        <label for="skyhour">Klockslag</label>
+        <input id="skyhour" type="range" min="0" max="72" step="1" value="24">
+        <div class="skytime" id="skytime"></div>
+        <p class="legend">Kartan visar hela himlen med zenit i mitten och horisonten som cirkelns kant. Håll den ovanför huvudet med norr uppåt – då hamnar öst till vänster och väst till höger. Gula punkter är planeter, den stora ljusa är månen, vita är de klaraste stjärnorna.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Dag för dag</h2>
+    <div class="card tablewrap"><table id="days"></table></div>
+  </section>
+
+  <footer>
+    <p>Allt räknas fram i din webbläsare med <a href="https://github.com/cosinekitty/astronomy">Astronomy Engine</a> (Don Cross), så sidan visar alltid rätt vecka. Meteorskurarnas datum är ungefärliga och följer IMO:s kalender. Synlighet förutsätter klart väder och fri horisont.</p>
+  </footer>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
+<script>
+(() => {
+  const A = Astronomy;
+  const TZ = 'Europe/Stockholm';
+  const OBS = new A.Observer(59.3293, 18.0686, 20);
+  const DAY = 86400000;
+
+  // ---------- tidshjälp ----------
+  const fmt = (opts) => new Intl.DateTimeFormat('sv-SE', { timeZone: TZ, ...opts });
+  const fTime = fmt({ hour: '2-digit', minute: '2-digit' });
+  const fDay = fmt({ weekday: 'short', day: 'numeric', month: 'short' });
+  const fDayLong = fmt({ weekday: 'long', day: 'numeric', month: 'long' });
+  const fDate = fmt({ day: 'numeric', month: 'long' });
+  const time = (d) => d ? fTime.format(d) : '–';
+  const dayShort = (d) => fDay.format(d).replace('.', '');
+  const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
+  function tzOffsetMin(date) {
+    const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', {
+      timeZone: TZ, hourCycle: 'h23', year: 'numeric', month: 'numeric', day: 'numeric',
+      hour: 'numeric', minute: 'numeric', second: 'numeric'
+    }).formatToParts(date).map(x => [x.type, x.value]));
+    const asUtc = Date.UTC(+p.year, p.month - 1, +p.day, +p.hour, +p.minute, +p.second);
+    return Math.round((asUtc - date.getTime()) / 60000);
+  }
+  // Ett ögonblick som motsvarar en lokal klocktid i Stockholm
+  function local(y, m, d, h = 0, min = 0) {
+    const guess = Date.UTC(y, m - 1, d, h, min);
+    let t = guess - tzOffsetMin(new Date(guess)) * 60000;
+    t = guess - tzOffsetMin(new Date(t)) * 60000;
+    return new Date(t);
+  }
+  function ymd(date) {
+    const p = Object.fromEntries(fmt({ year: 'numeric', month: 'numeric', day: 'numeric' })
+      .formatToParts(date).map(x => [x.type, x.value]));
+    return [+p.year, +p.month, +p.day];
+  }
+  function addDays([y, m, d], n) {
+    const t = new Date(Date.UTC(y, m - 1, d + n));
+    return [t.getUTCFullYear(), t.getUTCMonth() + 1, t.getUTCDate()];
+  }
+  function mondayOf(date) {
+    const [y, m, d] = ymd(date);
+    const wd = (new Date(Date.UTC(y, m - 1, d)).getUTCDay() + 6) % 7;
+    return addDays([y, m, d], -wd);
+  }
+  function isoWeek([y, m, d]) {
+    const t = new Date(Date.UTC(y, m - 1, d));
+    const wd = (t.getUTCDay() + 6) % 7;
+    t.setUTCDate(t.getUTCDate() - wd + 3);
+    const firstThu = new Date(Date.UTC(t.getUTCFullYear(), 0, 4));
+    return 1 + Math.round(((t - firstThu) / DAY - 3 + ((firstThu.getUTCDay() + 6) % 7)) / 7);
+  }
+
+  // ---------- astronomihjälp ----------
+  const BODIES = [
+    { id: 'Mercury', name: 'Merkurius' },
+    { id: 'Venus', name: 'Venus' },
+    { id: 'Mars', name: 'Mars' },
+    { id: 'Jupiter', name: 'Jupiter' },
+    { id: 'Saturn', name: 'Saturnus' },
+    { id: 'Uranus', name: 'Uranus' },
+    { id: 'Neptune', name: 'Neptunus' },
+  ];
+  const NAME = Object.fromEntries(BODIES.map(b => [b.id, b.name]));
+  NAME.Moon = 'Månen'; NAME.Sun = 'Solen';
+
+  const CONST_SV = {
+    And:'Andromeda',Ant:'Luftpumpen',Aps:'Paradisfågeln',Aqr:'Vattumannen',Aql:'Örnen',Ara:'Altaret',Ari:'Väduren',Aur:'Kusken',Boo:'Björnvaktaren',Cae:'Gravstickeln',Cam:'Giraffen',Cnc:'Kräftan',CVn:'Jakthundarna',CMa:'Stora hunden',CMi:'Lilla hunden',Cap:'Stenbocken',Car:'Kölen',Cas:'Cassiopeja',Cen:'Kentauren',Cep:'Kefeus',Cet:'Valfisken',Cha:'Kameleonten',Cir:'Cirkeln',Col:'Duvan',Com:'Berenikes hår',CrA:'Södra kronan',CrB:'Norra kronan',Crv:'Korpen',Crt:'Bägaren',Cru:'Södra korset',Cyg:'Svanen',Del:'Delfinen',Dor:'Svärdfisken',Dra:'Draken',Equ:'Lilla hästen',Eri:'Floden Eridanus',For:'Ugnen',Gem:'Tvillingarna',Gru:'Tranan',Her:'Herkules',Hor:'Pendeluret',Hya:'Vattenormen',Hyi:'Lilla vattenormen',Ind:'Indianen',Lac:'Ödlan',Leo:'Lejonet',LMi:'Lilla lejonet',Lep:'Haren',Lib:'Vågen',Lup:'Vargen',Lyn:'Lodjuret',Lyr:'Lyran',Men:'Taffelberget',Mic:'Mikroskopet',Mon:'Enhörningen',Mus:'Flugan',Nor:'Vinkelhaken',Oct:'Oktanten',Oph:'Ormbäraren',Ori:'Orion',Pav:'Påfågeln',Peg:'Pegasus',Per:'Perseus',Phe:'Fenix',Pic:'Målarstaffliet',Psc:'Fiskarna',PsA:'Södra fisken',Pup:'Akterskeppet',Pyx:'Kompassen',Ret:'Rombiska nätet',Sge:'Pilen',Sgr:'Skytten',Sco:'Skorpionen',Scl:'Bildhuggaren',Sct:'Skölden',Ser:'Ormen',Sex:'Sextanten',Tau:'Oxen',Tel:'Teleskopet',Tri:'Triangeln',TrA:'Södra triangeln',Tuc:'Tukanen',UMa:'Stora björn',UMi:'Lilla björn',Vel:'Seglet',Vir:'Jungfrun',Vol:'Flygfisken',Vul:'Räven'
+  };
+  const DIRS = ['norr','nordnordost','nordost','ostnordost','öster','ostsydost','sydost','sydsydost','söder','sydsydväst','sydväst','västsydväst','väster','västnordväst','nordväst','nordnordväst'];
+  const dirName = (az) => DIRS[Math.round(((az % 360) + 360) % 360 / 22.5) % 16];
+
+  function horizon(body, date) {
+    const eq = A.Equator(body, date, OBS, true, true);
+    const h = A.Horizon(date, OBS, eq.ra, eq.dec, 'normal');
+    return { alt: h.altitude, az: h.azimuth, ra: eq.ra, dec: eq.dec };
+  }
+  const sunAlt = (date) => horizon('Sun', date).alt;
+  function sep(a, b) {
+    const r = Math.PI / 180;
+    const c = Math.sin(a.dec * r) * Math.sin(b.dec * r) +
+              Math.cos(a.dec * r) * Math.cos(b.dec * r) * Math.cos((a.ra - b.ra) * 15 * r);
+    return Math.acos(Math.min(1, Math.max(-1, c))) / r;
+  }
+  function riseSet(body, start, dir) {
+    const t = A.SearchRiseSet(body, OBS, dir, start, 1);
+    return t ? t.date : null;
+  }
+  function altCross(start, dir, alt) {
+    const t = A.SearchAltitude('Sun', OBS, dir, start, 1, alt);
+    return t ? t.date : null;
+  }
+  const fmtNum = (x, n = 1) => x.toFixed(n).replace('.', ',').replace('-', '−');
+
+  // ---------- meteorskurar (ungefärliga, IMO) ----------
+  const SHOWERS = [
+    { name: 'Kvadrantiderna', start: [1,1], peak: [1,3], end: [1,6], zhr: 80, note: 'Kort, skarp topp. Radianten står högt på morgonen.' },
+    { name: 'Lyriderna', start: [4,14], peak: [4,22], end: [4,30], zhr: 18, note: 'Bäst efter midnatt.' },
+    { name: 'Perseiderna', start: [7,17], peak: [8,12], end: [8,24], zhr: 100, note: 'Årets mest kända skur – bäst efter midnatt.' },
+    { name: 'Drakoniderna', start: [10,6], peak: [10,8], end: [10,10], zhr: 10, note: 'Oberäknelig skur, bäst tidigt på kvällen.' },
+    { name: 'Orioniderna', start: [10,2], peak: [10,21], end: [11,7], zhr: 20, note: 'Snabba meteorer från Halleys komet. Bäst sent på natten.' },
+    { name: 'Södra tauriderna', start: [9,10], peak: [10,10], end: [11,20], zhr: 5, note: 'Långsamma, ibland mycket ljusa eldklot.' },
+    { name: 'Norra tauriderna', start: [10,20], peak: [11,12], end: [12,10], zhr: 5, note: 'Långsamma meteorer och chans till eldklot.' },
+    { name: 'Leoniderna', start: [11,6], peak: [11,17], end: [11,30], zhr: 15, note: 'Snabba meteorer, bäst före gryningen.' },
+    { name: 'Geminiderna', start: [12,4], peak: [12,14], end: [12,17], zhr: 150, note: 'Årets rikaste skur. Syns hela natten.' },
+    { name: 'Ursiderna', start: [12,17], peak: [12,22], end: [12,26], zhr: 10, note: 'Radianten nära Lilla björn – cirkumpolär från Stockholm.' },
+  ];
+
+  // ---------- veckoberäkning ----------
+  function computeWeek(monday) {
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const ymdI = addDays(monday, i);
+      const noon = local(...ymdI, 12);
+      const midnight = local(...ymdI, 0);
+      const sunrise = riseSet('Sun', midnight, +1);
+      const sunset = riseSet('Sun', noon, -1);
+      const nautDusk = altCross(noon, -1, -12);
+      const astroDusk = altCross(noon, -1, -18);
+      const astroDawn = astroDusk ? altCross(astroDusk, +1, -18) : null;
+      const nautDawn = nautDusk ? altCross(nautDusk, +1, -12) : null;
+      const moonrise = riseSet('Moon', midnight, +1);
+      const moonset = riseSet('Moon', midnight, -1);
+      const evening = local(...ymdI, 22);
+      const illum = A.Illumination('Moon', evening).phase_fraction;
+      const phase = A.MoonPhase(evening);
+      days.push({ ymd: ymdI, noon, midnight, sunrise, sunset, nautDusk, nautDawn, astroDusk, astroDawn, moonrise, moonset, illum, phase });
+    }
+    const start = local(...monday, 0);
+    const end = local(...addDays(monday, 7), 0);
+    return { days, start, end };
+  }
+
+  // Kvällens/nattens mörka tid: när solen är under −8°
+  function nightSamples(day, stepMin = 10) {
+    const out = [];
+    const t0 = day.noon.getTime() + 3 * 3600000;
+    const t1 = t0 + 21 * 3600000;
+    for (let t = t0; t <= t1; t += stepMin * 60000) {
+      const d = new Date(t);
+      if (sunAlt(d) < -8) out.push(d);
+    }
+    return out;
+  }
+
+  function planetInfo(body, week) {
+    const mid = new Date((week.start.getTime() + week.end.getTime()) / 2);
+    const ill = A.Illumination(body, mid);
+    const eq = A.Equator(body, mid, OBS, true, true);
+    const con = A.Constellation(eq.ra, eq.dec);
+    const elong = A.Elongation(body, mid);
+    // Mittdagens natt
+    const day = week.days[3];
+    const samples = nightSamples(day, 10);
+    let best = null, firstUp = null, lastUp = null;
+    for (const d of samples) {
+      const h = horizon(body, d);
+      if (h.alt > 8) {
+        if (!firstUp) firstUp = d;
+        lastUp = d;
+        if (!best || h.alt > best.alt) best = { ...h, date: d };
+      }
+    }
+    const rise = riseSet(body, day.noon, +1);
+    const set = riseSet(body, day.noon, -1);
+    let when = null;
+    if (best) {
+      const dark0 = samples[0], dark1 = samples[samples.length - 1];
+      const span = dark1 - dark0;
+      const a = (firstUp - dark0) / span, b = (lastUp - dark0) / span;
+      if (a < 0.15 && b > 0.85) when = 'hela natten';
+      else if (a < 0.15) when = 'på kvällen';
+      else if (b > 0.85) when = a > 0.5 ? 'på morgonen' : 'från sen kväll till gryningen';
+      else when = 'mitt i natten';
+    }
+    const naked = ill.mag < 5.5;
+    return { body, name: NAME[body], mag: ill.mag, con: CONST_SV[con.symbol] || con.name, elong: elong.elongation, best, when, rise, set, naked };
+  }
+
+  function findEvents(week) {
+    const ev = [];
+    const s = week.start, e = week.end;
+    const inWeek = (d) => d >= s && d < e;
+
+    // Månfaser
+    let mq = A.SearchMoonQuarter(new Date(s.getTime() - 8 * DAY));
+    for (let i = 0; i < 8; i++) {
+      if (inWeek(mq.time.date)) {
+        const names = ['Nymåne', 'Första kvarter', 'Fullmåne', 'Sista kvarter'];
+        const desc = [
+          'Månen syns inte – bästa veckan för svaga objekt som Vintergatan och galaxer.',
+          'Halvmåne på kvällshimlen. Terminatorn (skuggränsen) är fin i kikare.',
+          'Månen lyser hela natten och bleker ut svaga stjärnor.',
+          'Halvmåne på morgonhimlen. Kvällarna är mörka igen.'
+        ];
+        ev.push({ date: mq.time.date, title: names[mq.quarter], detail: desc[mq.quarter] + ' Exakt kl ' + time(mq.time.date) + '.', tag: ['info', 'måne'] });
+      }
+      mq = A.NextMoonQuarter(mq);
+    }
+
+    // Månens perigeum/apogeum
+    let ap = A.SearchLunarApsis(new Date(s.getTime() - 30 * DAY));
+    for (let i = 0; i < 6; i++) {
+      if (inWeek(ap.time.date)) {
+        const per = ap.kind === 0;
+        ev.push({ date: ap.time.date, title: per ? 'Månen närmast jorden (perigeum)' : 'Månen längst bort (apogeum)',
+          detail: `Avstånd ${Math.round(ap.dist_km).toLocaleString('sv-SE')} km.` + (per ? ' Månen ser några procent större ut än vanligt.' : ''), tag: ['info', 'måne'] });
+      }
+      ap = A.NextLunarApsis(ap);
+    }
+
+    // Förmörkelser
+    const le = A.SearchLunarEclipse(new Date(s.getTime() - DAY));
+    if (inWeek(le.peak.date)) {
+      const kinds = { penumbral: 'Halvskuggeförmörkelse av månen', partial: 'Partiell månförmörkelse', total: 'Total månförmörkelse' };
+      const up = horizon('Moon', le.peak.date).alt > 0;
+      ev.push({ date: le.peak.date, title: kinds[le.kind] || 'Månförmörkelse', detail: `Maximum kl ${time(le.peak.date)}. ` + (up ? 'Månen står över horisonten i Stockholm.' : 'Månen är under horisonten i Stockholm – syns inte härifrån.'), tag: up ? ['good', 'syns'] : ['warn', 'syns ej'] });
+    }
+    const se = A.SearchLocalSolarEclipse(new Date(s.getTime() - DAY), OBS);
+    if (inWeek(se.peak.time.date)) {
+      ev.push({ date: se.peak.time.date, title: 'Solförmörkelse', detail: `Maximum kl ${time(se.peak.time.date)}, ${se.obscuration != null ? Math.round(se.obscuration * 100) + ' % av solen täcks.' : ''} Titta aldrig direkt på solen utan godkända solglasögon!`, tag: ['good', 'syns'] });
+    }
+
+    // Opposition, konjunktion, största elongation
+    for (const b of BODIES) {
+      if (b.id === 'Mercury' || b.id === 'Venus') {
+        const me = A.SearchMaxElongation(b.id, new Date(s.getTime() - DAY));
+        if (inWeek(me.time.date)) {
+          const ev_ = me.visibility === 'evening';
+          ev.push({ date: me.time.date, title: `${b.name} i största ${ev_ ? 'östliga' : 'västliga'} elongation`,
+            detail: `${fmtNum(me.elongation, 0)}° från solen på ${ev_ ? 'kvällshimlen' : 'morgonhimlen'}. Bästa läget att se planeten under den här perioden – leta lågt i ${ev_ ? 'väster efter solnedgången' : 'öster före soluppgången'}.`, tag: ['good', 'planet'] });
+        }
+        const ic = A.SearchRelativeLongitude(b.id, 0, new Date(s.getTime() - DAY));
+        if (inWeek(ic.date)) ev.push({ date: ic.date, title: `${b.name} i undre konjunktion`, detail: 'Planeten passerar mellan jorden och solen och syns inte.', tag: ['warn', 'syns ej'] });
+      } else {
+        const op = A.SearchRelativeLongitude(b.id, 0, new Date(s.getTime() - DAY));
+        if (inWeek(op.date)) ev.push({ date: op.date, title: `${b.name} i opposition`, detail: 'Planeten står mitt emot solen: uppe hela natten, närmast jorden och som ljusast.', tag: ['good', 'planet'] });
+        const cj = A.SearchRelativeLongitude(b.id, 180, new Date(s.getTime() - DAY));
+        if (inWeek(cj.date)) ev.push({ date: cj.date, title: `${b.name} i konjunktion med solen`, detail: 'Planeten står bakom solen och syns inte.', tag: ['warn', 'syns ej'] });
+      }
+    }
+
+    // Månen nära planeter och planeter nära varandra (bara när det är mörkt och båda är uppe)
+    const visibleBodies = ['Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn'];
+    const best = {};
+    for (const day of week.days) {
+      for (const d of nightSamples(day, 20)) {
+        const pos = {};
+        for (const b of visibleBodies) pos[b] = horizon(b, d);
+        for (let i = 0; i < visibleBodies.length; i++) for (let j = i + 1; j < visibleBodies.length; j++) {
+          const a = visibleBodies[i], b = visibleBodies[j];
+          if (pos[a].alt < 5 || pos[b].alt < 5) continue;
+          const sp = sep(pos[a], pos[b]);
+          const key = a + '|' + b;
+          if (!best[key] || sp < best[key].sep) best[key] = { a, b, sep: sp, date: d, alt: Math.min(pos[a].alt, pos[b].alt), az: (pos[a].az + pos[b].az) / 2 };
+        }
+      }
+    }
+    for (const k in best) {
+      const c = best[k];
+      const limit = c.a === 'Moon' ? 7 : 4;
+      if (c.sep > limit) continue;
+      const bright = A.Illumination(c.b, c.date).mag;
+      const naked = bright < 5.5 || c.a !== 'Moon';
+      if (!naked) continue;
+      const title = c.a === 'Moon' ? `Månen nära ${NAME[c.b]}` : `${NAME[c.a]} och ${NAME[c.b]} nära varandra`;
+      ev.push({ date: c.date, title, detail: `${fmtNum(c.sep)}° isär kring kl ${time(c.date)}, ${Math.round(c.alt)}° över horisonten i ${dirName(c.az)}. Fint för blotta ögat och för fotografering.`, tag: ['good', 'syns'] });
+    }
+
+    // Meteorskurar
+    for (const sh of SHOWERS) {
+      for (const yy of [ymd(s)[0] - 1, ymd(s)[0], ymd(s)[0] + 1]) {
+        const endY = sh.end[0] < sh.start[0] ? yy + 1 : yy;
+        const peakY = sh.peak[0] < sh.start[0] ? yy + 1 : yy;
+        const a = local(yy, sh.start[0], sh.start[1]);
+        const b = local(endY, sh.end[0], sh.end[1], 23, 59);
+        if (b < s || a >= e) continue;
+        const peak = local(peakY, sh.peak[0], sh.peak[1], 3);
+        const moon = Math.round(A.Illumination('Moon', peak).phase_fraction * 100);
+        const peakInWeek = inWeek(peak);
+        ev.push({ date: peakInWeek ? peak : s, sortLast: !peakInWeek, title: peakInWeek ? `${sh.name} – maximum` : `${sh.name} är aktiva`,
+          detail: `${sh.note} Upp till ca ${sh.zhr} meteorer i timmen under idealiska förhållanden${peakInWeek ? '' : ` (topp ${fDate.format(peak)})`}. Månen är ${moon} % belyst vid toppen${moon > 60 ? ' – den stör.' : moon < 30 ? ' – bra förutsättningar.' : '.'}`,
+          tag: ['info', 'meteorer'], showers: true });
+      }
+    }
+
+    ev.sort((x, y) => (!!x.sortLast - !!y.sortLast) || (x.date - y.date));
+    return ev;
+  }
+
+  // ---------- rendering ----------
+  function moonSVG(phaseDeg, size = 20) {
+    const r = size / 2 - 1, c = size / 2;
+    const k = Math.cos(phaseDeg * Math.PI / 180); // 1 = ny, -1 = full
+    const waxing = phaseDeg < 180;
+    const rx = Math.abs(k) * r;
+    // Belyst del: halvcirkel på ljussidan (höger när den växer) + terminatorellips
+    const gibbous = k < 0;
+    const s1 = waxing ? 1 : 0;
+    const s2 = waxing ? (gibbous ? 1 : 0) : (gibbous ? 0 : 1);
+    const d = `M ${c} ${c - r} A ${r} ${r} 0 0 ${s1} ${c} ${c + r} A ${rx} ${r} 0 0 ${s2} ${c} ${c - r} Z`;
+    return `<svg class="moonicon" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><circle cx="${c}" cy="${c}" r="${r}" fill="#2a3150"/><path d="${d}" fill="#f3e6b8"/></svg>`;
+  }
+
+  function moonPhaseName(deg) {
+    if (deg < 6 || deg > 354) return 'nymåne';
+    if (deg < 84) return 'tilltagande skära';
+    if (deg < 96) return 'första kvarter';
+    if (deg < 174) return 'tilltagande, nästan full';
+    if (deg < 186) return 'fullmåne';
+    if (deg < 264) return 'avtagande';
+    if (deg < 276) return 'sista kvarter';
+    return 'avtagande skära';
+  }
+
+  function render(week, events, planets) {
+    // höjdpunkter
+    const hl = document.getElementById('highlights');
+    const items = [...events];
+    const visible = planets.filter(p => p.best && p.naked).sort((a, b) => a.mag - b.mag);
+    if (visible.length) {
+      items.push({ date: null, title: 'Planeter att leta efter',
+        detail: visible.map(p => `${p.name} ${p.when} (${p.con}, magnitud ${fmtNum(p.mag)})`).join(' · '), tag: ['good', 'syns'] });
+    }
+    const mid = week.days[3];
+    if (!mid.astroDusk) items.push({ date: null, title: 'Ljusa nätter', detail: 'Solen går inte tillräckligt långt under horisonten för att det ska bli helt mörkt. Bara månen, planeterna och de ljusaste stjärnorna syns.', tag: ['warn', 'ljust'] });
+    hl.innerHTML = items.length ? items.map(e => `
+      <div class="hl">
+        <div class="when">${e.date && !e.sortLast ? cap(dayShort(e.date)) : 'Hela veckan'}</div>
+        <div><div class="what">${e.title}<span class="tag ${e.tag[0]}">${e.tag[1]}</span></div><div class="detail">${e.detail}</div></div>
+      </div>`).join('') : '<p class="loading">Inga särskilda händelser den här veckan – men titta efter planeterna nedan.</p>';
+
+    // planeter
+    document.getElementById('planets').innerHTML = planets.map(p => {
+      let status;
+      if (p.best && p.naked) status = `<span class="tag good" style="margin:0">syns</span> ${p.when}`;
+      else if (p.best) status = `<span class="tag info" style="margin:0">kikare/teleskop</span> ${p.when}`;
+      else status = `<span class="tag warn" style="margin:0">syns ej</span> för nära solen eller under horisonten när det är mörkt`;
+      return `<div class="card planet${p.best ? '' : ' dim'}">
+        <h3>${p.name}<small>mag ${fmtNum(p.mag)}</small></h3>
+        <div class="status">${status}</div>
+        <dl>
+          <dt>Stjärnbild</dt><dd>${p.con}</dd>
+          ${p.best ? `<dt>Bäst</dt><dd>kl ${time(p.best.date)}, ${Math.round(p.best.alt)}° i ${dirName(p.best.az)}</dd>` : ''}
+          <dt>Upp / ner</dt><dd>${time(p.rise)} / ${time(p.set)}</dd>
+          <dt>Från solen</dt><dd>${Math.round(p.elong)}°</dd>
+        </dl>
+      </div>`;
+    }).join('');
+
+    // dag för dag
+    const rows = week.days.map(d => `<tr>
+      <td>${cap(fDayLong.format(d.noon))}</td>
+      <td>${time(d.sunrise)}</td><td>${time(d.sunset)}</td>
+      <td>${d.astroDusk ? time(d.astroDusk) + '–' + time(d.astroDawn) : (d.nautDusk ? 'ljus natt' : 'midnattsljus')}</td>
+      <td>${moonSVG(d.phase)}${Math.round(d.illum * 100)} %</td>
+      <td>${time(d.moonrise)} / ${time(d.moonset)}</td>
+    </tr>`).join('');
+    document.getElementById('days').innerHTML = `<thead><tr><th>Dag</th><th>Sol upp</th><th>Sol ner</th><th>Helt mörkt</th><th>Månen (kl 22)</th><th>Måne upp / ner</th></tr></thead><tbody>${rows}</tbody>`;
+  }
+
+  // ---------- stjärnkarta ----------
+  const STARS = [
+    ['Sirius',6.752,-16.716,-1.46],['Arcturus',14.261,19.182,-0.05],['Vega',18.616,38.784,0.03],['Capella',5.278,45.998,0.08],
+    ['Rigel',5.242,-8.202,0.13],['Procyon',7.655,5.225,0.34],['Betelgeuse',5.919,7.407,0.5],['Altair',19.846,8.868,0.77],
+    ['Aldebaran',4.599,16.509,0.86],['Antares',16.490,-26.432,0.96],['Spica',13.420,-11.161,0.97],['Pollux',7.755,28.026,1.14],
+    ['Fomalhaut',22.961,-29.622,1.16],['Deneb',20.690,45.280,1.25],['Regulus',10.140,11.967,1.35],['Castor',7.577,31.888,1.58],
+    ['Bellatrix',5.419,6.350,1.64],['Alnilam',5.604,-1.202,1.69],['Alnitak',5.679,-1.943,1.74],['Mintaka',5.533,-0.299,2.23],
+    ['Alioth',12.900,55.960,1.77],['Dubhe',11.062,61.751,1.79],['Mirfak',3.405,49.861,1.79],['Alkaid',13.792,49.313,1.86],
+    ['Mizar',13.399,54.925,2.23],['Merak',11.031,56.382,2.37],['Phecda',11.897,53.695,2.44],['Megrez',12.257,57.033,3.31],
+    ['Polaris',2.530,89.264,1.98],['Alpheratz',0.140,29.091,2.06],['Hamal',2.120,23.462,2.0],['Algol',3.136,40.956,2.1],
+    ['Schedar',0.675,56.537,2.24],['Caph',0.153,59.150,2.28],['Navi',0.945,60.717,2.47],['Ruchbah',1.430,60.235,2.68],['Segin',1.907,63.670,3.37],
+    ['Markab',23.079,15.205,2.49],['Scheat',23.063,28.083,2.42],['Algenib',0.221,15.184,2.83],
+    ['Sadr',20.370,40.257,2.23],['Gienah',20.770,33.970,2.48],['Albireo',19.512,27.960,3.05],['Elnath',5.438,28.608,1.65],
+    ['Denebola',11.818,14.572,2.13],['Algieba',10.333,19.842,2.08],['Rasalhague',17.582,12.560,2.08],['Kochab',14.845,74.156,2.08],
+    ['Alcyone (Plejaderna)',3.791,24.105,2.87],['Menkalinan',5.992,44.948,1.9],['Saiph',5.796,-9.670,2.07],
+  ];
+  const LINES = [
+    ['Dubhe','Merak'],['Merak','Phecda'],['Phecda','Megrez'],['Megrez','Dubhe'],['Megrez','Alioth'],['Alioth','Mizar'],['Mizar','Alkaid'],
+    ['Caph','Schedar'],['Schedar','Navi'],['Navi','Ruchbah'],['Ruchbah','Segin'],
+    ['Betelgeuse','Bellatrix'],['Bellatrix','Mintaka'],['Mintaka','Alnilam'],['Alnilam','Alnitak'],['Alnitak','Saiph'],['Saiph','Rigel'],['Rigel','Mintaka'],['Betelgeuse','Alnitak'],
+    ['Alpheratz','Scheat'],['Scheat','Markab'],['Markab','Algenib'],['Algenib','Alpheratz'],
+    ['Deneb','Sadr'],['Sadr','Albireo'],['Sadr','Gienah'],
+    ['Vega','Deneb'],['Deneb','Altair'],['Altair','Vega'],
+    ['Castor','Pollux'],['Capella','Menkalinan'],['Capella','Elnath'],
+    ['Regulus','Algieba'],['Algieba','Denebola'],['Denebola','Regulus'],
+  ];
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  function proj(alt, az) {
+    const r = (90 - alt) / 90 * 100;
+    const a = az * Math.PI / 180;
+    return [-r * Math.sin(a), -r * Math.cos(a)]; // norr upp, öst vänster
+  }
+  function drawSky(date) {
+    const svg = document.getElementById('sky');
+    const t = A.MakeTime(date);
+    const sa = sunAlt(date);
+    const skyCol = sa > -6 ? '#1d2f5e' : sa > -12 ? '#142247' : '#0a1230';
+    let html = `<defs><radialGradient id="sg"><stop offset="0" stop-color="${skyCol}"/><stop offset="1" stop-color="#050915"/></radialGradient></defs>
+      <circle r="100" fill="url(#sg)" stroke="rgba(255,255,255,.25)"/>
+      <circle r="66.7" fill="none" stroke="rgba(255,255,255,.07)"/><circle r="33.3" fill="none" stroke="rgba(255,255,255,.07)"/>`;
+    for (const [lbl, az] of [['N',0],['Ö',90],['S',180],['V',270]]) {
+      const [x, y] = proj(-9, az);
+      html += `<text x="${x}" y="${y + 3}" fill="#9aa5c4" font-size="8" text-anchor="middle" font-family="Inter">${lbl}</text>`;
+    }
+    const starPos = {};
+    for (const [name, ra, dec, mag] of STARS) {
+      const h = A.Horizon(t, OBS, ra, dec, 'normal');
+      if (h.altitude < 0) continue;
+      starPos[name] = proj(h.altitude, h.azimuth);
+      starPos[name].mag = mag;
+    }
+    for (const [a, b] of LINES) {
+      if (starPos[a] && starPos[b]) html += `<line x1="${starPos[a][0]}" y1="${starPos[a][1]}" x2="${starPos[b][0]}" y2="${starPos[b][1]}" stroke="rgba(138,180,255,.25)" stroke-width=".5"/>`;
+    }
+    for (const name in starPos) {
+      const [x, y] = starPos[name]; const m = starPos[name].mag;
+      const r = Math.max(0.5, 2.2 - m * 0.55);
+      html += `<circle cx="${x}" cy="${y}" r="${r}" fill="#fff" opacity="${sa < -12 ? 1 : 0.6}"><title>${name}</title></circle>`;
+      if (m < 1.0 || name === 'Polaris' || name.startsWith('Alcyone')) html += `<text x="${x + 2.5}" y="${y - 2}" fill="rgba(232,236,248,.6)" font-size="4.2" font-family="Inter">${name.replace(' (Plejaderna)', '')}</text>`;
+    }
+    for (const b of ['Mercury','Venus','Mars','Jupiter','Saturn']) {
+      const h = horizon(b, date);
+      if (h.alt < 0) continue;
+      const [x, y] = proj(h.alt, h.az);
+      const mag = A.Illumination(b, date).mag;
+      const r = Math.max(1.4, 3 - mag * 0.5);
+      html += `<circle cx="${x}" cy="${y}" r="${r}" fill="#f3d58a"><title>${NAME[b]}</title></circle>
+        <text x="${x + r + 1.5}" y="${y + 1.5}" fill="#f3d58a" font-size="5" font-weight="600" font-family="Inter">${NAME[b]}</text>`;
+    }
+    const m = horizon('Moon', date);
+    if (m.alt > 0) {
+      const [x, y] = proj(m.alt, m.az);
+      const ill = A.Illumination('Moon', date).phase_fraction;
+      html += `<circle cx="${x}" cy="${y}" r="5" fill="#f3e6b8" opacity="${0.35 + 0.65 * ill}"><title>Månen</title></circle>
+        <text x="${x + 7}" y="${y + 1.5}" fill="#f3e6b8" font-size="5" font-weight="600" font-family="Inter">Månen ${Math.round(ill * 100)} %</text>`;
+    }
+    const s = horizon('Sun', date);
+    if (s.alt > 0) html += `<text x="0" y="0" fill="#fff" font-size="7" text-anchor="middle" font-family="Inter">Solen är uppe</text>`;
+    svg.innerHTML = html;
+  }
+
+  function setupSky(week) {
+    const sel = document.getElementById('skyday');
+    const slider = document.getElementById('skyhour');
+    sel.innerHTML = week.days.map((d, i) => `<option value="${i}">${cap(fDayLong.format(d.noon))}</option>`).join('');
+    // Börja på dagens kväll om den finns i veckan
+    const todayIdx = week.days.findIndex(d => ymd(new Date()).join() === d.ymd.join());
+    sel.value = todayIdx >= 0 ? todayIdx : 0;
+    // Skjutreglaget: 16:00 – 08:00 i kvartssteg (0..64)
+    slider.max = 64;
+    const update = () => {
+      const d = week.days[+sel.value];
+      const base = local(...d.ymd, 16);
+      const date = new Date(base.getTime() + slider.value * 15 * 60000);
+      document.getElementById('skytime').textContent = `${cap(fDay.format(date).replace('.', ''))} kl ${time(date)}`;
+      drawSky(date);
+    };
+    if (!slider.dataset.init) {
+      sel.addEventListener('change', update);
+      slider.addEventListener('input', update);
+      slider.dataset.init = '1';
+    }
+    // standard: kl 22 eller när det blivit mörkt
+    const d0 = week.days[+sel.value];
+    const dark = d0.nautDusk ? Math.max(local(...d0.ymd, 21), d0.nautDusk) : local(...d0.ymd, 23, 30);
+    slider.value = Math.min(64, Math.round((dark - local(...d0.ymd, 16)) / 900000));
+    window.__skyUpdate = update;
+    update();
+  }
+
+  // ---------- veckonavigering ----------
+  let offset = 0;
+  try { offset = parseInt(new URLSearchParams(location.search).get('v') || '0', 10) || 0; } catch (e) {}
+
+  function run() {
+    const monday = addDays(mondayOf(new Date()), offset * 7);
+    const sunday = addDays(monday, 6);
+    document.getElementById('range').textContent =
+      `Vecka ${isoWeek(monday)}: ${fDate.format(local(...monday, 12))} – ${fDate.format(local(...sunday, 12))} ${sunday[0]}`;
+    document.getElementById('today').hidden = offset === 0;
+    document.getElementById('highlights').innerHTML = '<p class="loading">Räknar ut himlen…</p>';
+    setTimeout(() => {
+      const week = computeWeek(monday);
+      const events = findEvents(week);
+      const planets = BODIES.map(b => planetInfo(b.id, week));
+      render(week, events, planets);
+      setupSky(week);
+    }, 20);
+    const url = offset ? `?v=${offset}` : location.pathname;
+    try { history.replaceState(null, '', url); } catch (e) {}
+  }
+  document.getElementById('prev').onclick = () => { offset--; run(); };
+  document.getElementById('next').onclick = () => { offset++; run(); };
+  document.getElementById('today').onclick = () => { offset = 0; run(); };
+  run();
+
+  // ---------- bakgrundsstjärnor ----------
+  const cv = document.getElementById('stars');
+  function stars() {
+    const dpr = window.devicePixelRatio || 1;
+    cv.width = innerWidth * dpr; cv.height = innerHeight * dpr;
+    cv.style.width = innerWidth + 'px'; cv.style.height = innerHeight + 'px';
+    const c = cv.getContext('2d');
+    let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    const n = Math.round(innerWidth * innerHeight / 3500);
+    for (let i = 0; i < n; i++) {
+      c.fillStyle = `rgba(255,255,255,${0.15 + rnd() * 0.5})`;
+      c.beginPath(); c.arc(rnd() * cv.width, rnd() * cv.height, (0.3 + rnd() * 0.9) * dpr, 0, 7); c.fill();
+    }
+  }
+  stars(); addEventListener('resize', stars);
+})();
+</script>
+</body>
+</html>
